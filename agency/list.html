@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>OFF PG 영업사 - 가맹점 리스트</title>
+<link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+<div class="app-shell">
+  <div class="topbar" id="topbar"></div>
+  <div class="main-content">
+    <div class="panel">
+      <div class="filter-bar">
+        <select id="f-type">
+          <option value="">가맹점 전체</option>
+          <option value="가맹점">가맹점</option>
+        </select>
+        <input type="text" id="f-keyword" placeholder="업체명 검색" />
+        <button class="btn" id="btn-search">검색</button>
+        <div class="spacer"></div>
+        <button class="btn btn-primary" id="btn-add">+ 가맹점 등록</button>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>No</th><th>업체구분</th><th>업체정보</th><th>URL</th><th>상세정보</th>
+              <th>첨부파일</th><th>계약진행상황</th><th>단말기개통현황</th>
+            </tr>
+          </thead>
+          <tbody id="list-body"></tbody>
+        </table>
+      </div>
+      <div class="footer-note">
+        ※ 실질적인 가맹점 신규 등록은 대부분 영업사 단계에서 발생하며, 등록과 동시에 생성된 URL을 영업사가 가맹점에 전달하는 방식으로 운영됩니다.<br />
+        ※ 계약진행상황·단말기개통현황은 어드민에서만 변경 (영업사는 조회만 가능)
+      </div>
+    </div>
+  </div>
+</div>
+<script src="../assets/js/data.js"></script>
+<script src="../assets/js/common.js"></script>
+<script>
+  var session = OffPGUI.requireSession("agency", "index.html");
+  if (session) {
+    OffPGUI.renderTopbar({ brand: "OFF PG AGENCY", userName: session.name, loginUrl: "index.html" });
+
+    function currentList() {
+      var kw = document.getElementById("f-keyword").value.trim().toLowerCase();
+      return OffPG.getChildren(session.companyId)
+        .filter(function (c) { return !kw || c.name.toLowerCase().indexOf(kw) !== -1; })
+        .sort(function (a, b) { return b.regDate.localeCompare(a.regDate); });
+    }
+
+    function render() {
+      var list = currentList();
+      document.getElementById("list-body").innerHTML = list
+        .map(function (c, i) {
+          var info =
+            "<b>" + OffPGUI.escapeHtml(c.name) + "</b><br/>" +
+            c.bizNo + " · " + OffPGUI.escapeHtml(c.email) + "<br/>" +
+            c.phone + " · " + OffPGUI.escapeHtml(c.ceo) + " · " + c.tel;
+          var urlCell = "<a href='" + OffPGUI.merchantHref(c.urlCode) + "' target='_blank'>" + OffPGUI.shortUrl(c.urlCode) + "</a>";
+          return (
+            "<tr>" +
+            "<td>" + (list.length - i) + "</td>" +
+            "<td>" + c.type + "</td>" +
+            "<td class='company-info'>" + info + "</td>" +
+            "<td>" + urlCell + "</td>" +
+            "<td><button class='btn btn-sm' data-detail='" + c.id + "'>상세보기</button></td>" +
+            "<td>" + OffPGUI.attachBadge(c.attachStatus) + "</td>" +
+            "<td>" + OffPGUI.badge(c.contractStatus, "navy") + "</td>" +
+            "<td>" + OffPGUI.badge(c.deviceStatus, "amber") + "</td>" +
+            "</tr>"
+          );
+        })
+        .join("");
+
+      document.querySelectorAll("[data-detail]").forEach(function (btn) {
+        btn.addEventListener("click", function () { showDetail(btn.getAttribute("data-detail")); });
+      });
+    }
+
+    function showDetail(id) {
+      var c = OffPG.getById(id);
+      var profitLabel = "영업사수익";
+      var rowsHtml = OffPG.ROWS.map(function (row) {
+        var f = c.feeTable[row];
+        return (
+          "<tr><td>" + row + "</td><td>" + f.cost + "%</td>" +
+          "<td>" + f.profit + "%</td><td>" + f.sale + "%</td></tr>"
+        );
+      }).join("");
+      OffPGUI.openModal(
+        '<div class="modal-head">업체 상세정보 - ' + OffPGUI.escapeHtml(c.name) + '</div>' +
+        '<div class="modal-body">' +
+        '<h3>업체정보</h3>' +
+        '<div class="kv-grid">' +
+        '<div><div class="k">업체명</div><div class="v">' + OffPGUI.escapeHtml(c.name) + '</div></div>' +
+        '<div><div class="k">사업자등록번호</div><div class="v">' + c.bizNo + '</div></div>' +
+        '<div><div class="k">이메일</div><div class="v">' + OffPGUI.escapeHtml(c.email) + '</div></div>' +
+        '<div><div class="k">휴대폰번호</div><div class="v">' + c.phone + '</div></div>' +
+        '<div><div class="k">대표자명</div><div class="v">' + OffPGUI.escapeHtml(c.ceo) + '</div></div>' +
+        '<div><div class="k">업체전화번호</div><div class="v">' + c.tel + '</div></div>' +
+        '</div>' +
+        '<h3>수수료테이블</h3>' +
+        '<table class="data-table fee-table"><thead><tr><th>영중소구분</th><th>' + c.settleCycle + '원가</th><th>' + profitLabel + '</th><th>판매가</th></tr></thead><tbody>' + rowsHtml + '</tbody></table>' +
+        '</div>' +
+        '<div class="modal-foot"><button class="btn" data-close-modal>닫기</button></div>'
+      );
+    }
+
+    document.getElementById("btn-search").addEventListener("click", render);
+    document.getElementById("f-type").addEventListener("change", render);
+    document.getElementById("btn-add").addEventListener("click", function () {
+      window.location.href = "register.html";
+    });
+
+    render();
+  }
+</script>
+</body>
+</html>

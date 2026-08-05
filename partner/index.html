@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>OFF PG 총판 로그인</title>
+<link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+<div class="login-page">
+  <div class="login-card">
+    <h1>OFF PG 총판</h1>
+    <div class="sub">PARTNER LOGIN</div>
+    <hr />
+    <form id="login-form">
+      <div class="field">
+        <label>아이디</label>
+        <input type="text" id="login-id" placeholder="partner id" autocomplete="username" />
+      </div>
+      <div class="field">
+        <label>비밀번호</label>
+        <input type="password" id="login-pw" placeholder="••••••" autocomplete="current-password" />
+      </div>
+      <div class="remember-row">
+        <input type="checkbox" id="remember" />
+        <label for="remember">로그인 상태 유지</label>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block btn-lg">로그인</button>
+    </form>
+    <div class="forgot">어드민에서 발급받은 계정으로 로그인</div>
+    <div class="login-hint">데모 계정 ID: partner1 / partner2 / partner3 (비밀번호는 무엇이든 가능) — 없는 ID 입력 시 partner1로 로그인됩니다.</div>
+  </div>
+</div>
+<script src="../assets/js/data.js"></script>
+<script src="../assets/js/common.js"></script>
+<script>
+  document.getElementById("login-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var inputId = document.getElementById("login-id").value.trim().toLowerCase();
+    var partners = OffPG.all().filter(function (c) { return c.type === "총판"; });
+    var matched = partners.find(function (c) { return (c.loginId || "").toLowerCase() === inputId; }) || partners[0];
+    OffPG.session.set({ role: "partner", companyId: matched.id, name: matched.name });
+    window.location.href = "list.html";
+  });
+</script>
+</body>
+</html>

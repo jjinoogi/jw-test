@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>OFF PG 관리자 - 사용자관리</title>
+<link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+<div class="app-shell">
+  <div class="topbar" id="topbar"></div>
+  <div class="with-sidebar">
+    <div class="sidebar" id="sidebar"></div>
+    <div class="main-content">
+      <div class="panel">
+        <div class="filter-bar">
+          <div style="font-weight:700;color:var(--navy);">전체 계정 목록 (어드민 하위 전체)</div>
+          <div class="spacer"></div>
+          <button class="btn btn-primary" id="btn-add-top">+ 추가</button>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr><th>업체구분</th><th>업체명</th><th>사용자ID</th><th>연락처</th><th>PW초기화</th><th>상태</th></tr>
+            </thead>
+            <tbody id="list-body"></tbody>
+          </table>
+        </div>
+        <div class="actions-row">
+          <button class="btn" id="btn-save">저장</button>
+          <button class="btn btn-primary" id="btn-add-bottom">추가</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="../assets/js/data.js"></script>
+<script src="../assets/js/common.js"></script>
+<script>
+  var session = OffPGUI.requireSession("admin", "index.html");
+  if (session) {
+    OffPGUI.renderTopbar({ brand: "OFF PG ADMIN", userName: session.name, loginUrl: "index.html" });
+    OffPGUI.renderSidebar("users", "");
+
+    function buildHierarchy() {
+      var roots = OffPG.all().filter(function (c) { return !c.parentId; });
+      var out = [];
+      function walk(node, depth) {
+        out.push({ c: node, depth: depth });
+        OffPG.getChildren(node.id).forEach(function (child) {
+          walk(child, depth + 1);
+        });
+      }
+      roots.forEach(function (r) { walk(r, 0); });
+      return out;
+    }
+
+    function render() {
+      var rows = buildHierarchy();
+      document.getElementById("list-body").innerHTML = rows
+        .map(function (r) {
+          var c = r.c;
+          var indent = "&nbsp;".repeat(r.depth * 4) + (r.depth > 0 ? "└ " : "");
+          var hasLogin = c.type !== "가맹점";
+          return (
+            "<tr>" +
+            "<td>" + c.type + "</td>" +
+            "<td class='left'>" + indent + OffPGUI.escapeHtml(c.name) + "</td>" +
+            "<td>" + (hasLogin ? (c.loginId || "-") : "-") + "</td>" +
+            "<td>" + c.phone + "</td>" +
+            "<td><button class='btn btn-sm' " + (hasLogin ? "data-reset='" + c.id + "'" : "disabled") + ">초기화</button></td>" +
+            "<td><button class='toggle " + (c.active ? "on" : "") + "' data-toggle='" + c.id + "'></button></td>" +
+            "</tr>"
+          );
+        })
+        .join("");
+
+      document.querySelectorAll("[data-reset]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          OffPGUI.toast("초기화되었습니다.");
+        });
+      });
+      document.querySelectorAll("[data-toggle]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          OffPG.toggleActive(btn.getAttribute("data-toggle"));
+          render();
+        });
+      });
+    }
+
+    function openAddModal() {
+      OffPGUI.openModal(
+        '<div class="modal-head">계정 추가</div>' +
+        '<div class="modal-body">' +
+        '<div class="form-grid">' +
+        '<div class="field"><label>업체구분</label><select id="m-type"><option value="총판">총판</option><option value="영업사">영업사</option><option value="가맹점">가맹점</option></select></div>' +
+        '<div class="field"><label>업체명</label><input type="text" id="m-name" /></div>' +
+        '<div class="field"><label>사용자ID</label><input type="text" id="m-userid" /></div>' +
+        '<div class="field"><label>연락처</label><input type="text" id="m-phone" placeholder="010-0000-0000" /></div>' +
+        '</div></div>' +
+        '<div class="modal-foot">' +
+        '<button class="btn" data-close-modal>취소</button>' +
+        '<button class="btn btn-primary" id="m-save" style="margin-left:8px;">저장</button>' +
+        '</div>'
+      );
+      document.getElementById("m-save").addEventListener("click", function () {
+        var name = document.getElementById("m-name").value.trim();
+        if (!name) { OffPGUI.toast("업체명을 입력해주세요."); return; }
+        var type = document.getElementById("m-type").value;
+        OffPG.adminAddCompany({
+          type: type,
+          name: name,
+          bizNo: "000-00-00000",
+          email: "",
+          phone: document.getElementById("m-phone").value.trim() || "010-0000-0000",
+          ceo: "",
+          tel: "",
+          loginId: document.getElementById("m-userid").value.trim(),
+          loginPw: "1234",
+          settleCycle: "D+1",
+          adminCost: (function () { var t = {}; OffPG.ROWS.forEach(function (r) { t[r] = { d0: 1.5, d1: 1.7 }; }); return t; })()
+        });
+        OffPGUI.closeModal();
+        OffPGUI.toast("계정이 추가되었습니다.");
+        render();
+      });
+    }
+
+    document.getElementById("btn-add-top").addEventListener("click", openAddModal);
+    document.getElementById("btn-add-bottom").addEventListener("click", openAddModal);
+    document.getElementById("btn-save").addEventListener("click", function () {
+      OffPGUI.toast("저장되었습니다.");
+    });
+
+    render();
+  }
+</script>
+</body>
+</html>

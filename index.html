@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>OFF PG 가맹점 신청 웹 솔루션 - 데모</title>
+<link rel="stylesheet" href="assets/css/style.css" />
+<style>
+  .landing { min-height: 100vh; display:flex; align-items:center; justify-content:center; background:var(--bg); padding:24px; }
+  .landing-card { width: 560px; max-width:100%; background:#fff; border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow); padding:44px 40px; }
+  .landing-card h1 { color:var(--navy); font-size:22px; margin:0 0 6px; text-align:center; }
+  .landing-card .sub { text-align:center; color:var(--text-sub); font-size:13px; margin-bottom:30px; }
+  .role-grid { display:grid; grid-template-columns: 1fr 1fr; gap:14px; }
+  .role-btn { display:block; padding:20px; border:1px solid var(--border); border-radius:10px; text-align:center; font-weight:700; color:var(--navy); background:#FAFBFD; }
+  .role-btn:hover { border-color:var(--navy); background:var(--lightblue); }
+  .role-btn small { display:block; font-weight:400; color:var(--text-sub); margin-top:6px; font-size:12px; }
+  .merchant-demo { margin-top:20px; padding:16px; background:var(--lightblue); border-radius:8px; font-size:12.5px; color:var(--navy); text-align:center; }
+  .merchant-demo a { text-decoration:underline; font-weight:700; }
+</style>
+</head>
+<body>
+<div class="landing">
+  <div class="landing-card">
+    <h1>OFF PG 가맹점 신청 웹 솔루션</h1>
+    <div class="sub">역할을 선택해 데모 화면으로 이동하세요 (Mock Demo)</div>
+    <div class="role-grid">
+      <a class="role-btn" href="admin/index.html">어드민<small>ADMIN</small></a>
+      <a class="role-btn" href="partner/index.html">총판<small>PARTNER</small></a>
+      <a class="role-btn" href="agency/index.html">영업사<small>AGENCY</small></a>
+      <a class="role-btn" href="#" id="merchant-demo-btn">가맹점<small>MERCHANT (URL 예시)</small></a>
+    </div>
+    <div class="merchant-demo" id="merchant-demo-note">가맹점 화면은 총판/영업사가 발급한 신청 URL로만 접근합니다.</div>
+  </div>
+</div>
+<script src="assets/js/data.js"></script>
+<script>
+  document.getElementById("merchant-demo-btn").addEventListener("click", function (e) {
+    e.preventDefault();
+    var merchant = OffPG.all().find(function (c) { return c.type === "가맹점" && c.urlCode; });
+    if (merchant) {
+      window.location.href = "merchant/index.html#" + merchant.urlCode;
+    }
+  });
+</script>
+</body>
+</html>

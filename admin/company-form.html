@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>OFF PG 관리자 - 업체등록</title>
+<link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+<div class="app-shell">
+  <div class="topbar" id="topbar"></div>
+  <div class="with-sidebar">
+    <div class="sidebar" id="sidebar"></div>
+    <div class="main-content">
+      <div class="panel">
+        <div class="section-title">업체구분</div>
+        <div class="segmented" id="type-seg">
+          <button type="button" data-value="총판" class="active">총판</button>
+          <button type="button" data-value="영업사">영업자</button>
+          <button type="button" data-value="가맹점">가맹점</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="section-title">업체정보</div>
+        <div class="form-grid">
+          <div class="field"><label>업체명</label><input type="text" id="f-name" placeholder="㈜○○○○" /></div>
+          <div class="field"><label>사업자등록번호</label><input type="text" id="f-bizno" placeholder="000-00-00000" /></div>
+          <div class="field"><label>이메일</label><input type="text" id="f-email" placeholder="example@mail.com" /></div>
+          <div class="field"><label>휴대폰번호</label><input type="text" id="f-phone" placeholder="010-0000-0000" /></div>
+          <div class="field"><label>대표자명</label><input type="text" id="f-ceo" placeholder="홍길동" /></div>
+          <div class="field"><label>업체전화번호</label><input type="text" id="f-tel" placeholder="02-000-0000" /></div>
+          <div class="field"><label>로그인 ID</label><input type="text" id="f-loginid" placeholder="login id" /></div>
+          <div class="field"><label>로그인 PW</label><input type="password" id="f-loginpw" placeholder="••••••" /></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="section-title">정산주기</div>
+        <div class="segmented" id="cycle-seg">
+          <button type="button" data-value="D+0">D+0</button>
+          <button type="button" data-value="D+1" class="active">D+1</button>
+        </div>
+
+        <div class="section-title" style="margin-top:22px;">수수료테이블 (원가 등록)</div>
+        <div class="table-wrap">
+          <table class="data-table fee-table">
+            <thead>
+              <tr><th>영중소구분</th><th>D+0 원가</th><th>D+1 원가</th><th>총판수익</th><th>판매가</th></tr>
+            </thead>
+            <tbody id="fee-body"></tbody>
+          </table>
+        </div>
+
+        <div class="actions-row">
+          <button class="btn" id="btn-cancel">취소</button>
+          <button class="btn btn-primary" id="btn-save">저장</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="../assets/js/data.js"></script>
+<script src="../assets/js/common.js"></script>
+<script>
+  var session = OffPGUI.requireSession("admin", "index.html");
+  if (session) {
+    OffPGUI.renderTopbar({ brand: "OFF PG ADMIN", userName: session.name, loginUrl: "index.html" });
+    OffPGUI.renderSidebar("companies", "");
+
+    var selectedType = "총판";
+    document.querySelectorAll("#type-seg button").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        document.querySelectorAll("#type-seg button").forEach(function (b) { b.classList.remove("active"); });
+        btn.classList.add("active");
+        selectedType = btn.getAttribute("data-value");
+      });
+    });
+
+    var selectedCycle = "D+1";
+    document.querySelectorAll("#cycle-seg button").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        document.querySelectorAll("#cycle-seg button").forEach(function (b) { b.classList.remove("active"); });
+        btn.classList.add("active");
+        selectedCycle = btn.getAttribute("data-value");
+      });
+    });
+
+    document.getElementById("fee-body").innerHTML = OffPG.ROWS.map(function (row) {
+      return (
+        "<tr><td>" + row + "</td>" +
+        "<td><input type='text' class='fee-d0' data-row='" + row + "' placeholder='%' /></td>" +
+        "<td><input type='text' class='fee-d1' data-row='" + row + "' placeholder='%' /></td>" +
+        "<td class='dash'>-</td><td class='dash'>-</td></tr>"
+      );
+    }).join("");
+
+    document.getElementById("btn-cancel").addEventListener("click", function () {
+      window.location.href = "companies.html";
+    });
+
+    document.getElementById("btn-save").addEventListener("click", function () {
+      var name = document.getElementById("f-name").value.trim();
+      var bizNo = document.getElementById("f-bizno").value.trim();
+      if (!name || !bizNo) {
+        OffPGUI.toast("업체명과 사업자등록번호를 입력해주세요.");
+        return;
+      }
+      var adminCost = {};
+      OffPG.ROWS.forEach(function (row) {
+        var d0 = parseFloat(document.querySelector(".fee-d0[data-row='" + row + "']").value) || 0;
+        var d1 = parseFloat(document.querySelector(".fee-d1[data-row='" + row + "']").value) || 0;
+        adminCost[row] = { d0: d0, d1: d1 };
+      });
+
+      OffPG.adminAddCompany({
+        type: selectedType,
+        name: name,
+        bizNo: bizNo,
+        email: document.getElementById("f-email").value.trim(),
+        phone: document.getElementById("f-phone").value.trim(),
+        ceo: document.getElementById("f-ceo").value.trim(),
+        tel: document.getElementById("f-tel").value.trim(),
+        loginId: document.getElementById("f-loginid").value.trim(),
+        loginPw: document.getElementById("f-loginpw").value.trim(),
+        settleCycle: selectedCycle,
+        adminCost: adminCost
+      });
+
+      OffPGUI.toast("업체가 등록되었습니다.");
+      window.location.href = "companies.html";
+    });
+  }
+</script>
+</body>
+</html>

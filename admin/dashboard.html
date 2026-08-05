@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>OFF PG 관리자 - 대시보드</title>
+<link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+<div class="app-shell">
+  <div class="topbar" id="topbar"></div>
+  <div class="with-sidebar">
+    <div class="sidebar" id="sidebar"></div>
+    <div class="main-content">
+      <div class="summary-cards">
+        <div class="summary-card">
+          <div class="label">총판</div>
+          <div class="value" id="cnt-partner">0</div>
+        </div>
+        <div class="summary-card">
+          <div class="label">영업사</div>
+          <div class="value" id="cnt-agency">0</div>
+        </div>
+        <div class="summary-card">
+          <div class="label">가맹점</div>
+          <div class="value" id="cnt-merchant">0</div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="section-title">최근 등록 현황</div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr><th>업체구분</th><th>업체명</th><th>등록일</th><th>상태</th></tr>
+            </thead>
+            <tbody id="recent-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="../assets/js/data.js"></script>
+<script src="../assets/js/common.js"></script>
+<script>
+  var session = OffPGUI.requireSession("admin", "index.html");
+  if (session) {
+    OffPGUI.renderTopbar({ brand: "OFF PG ADMIN", userName: session.name, loginUrl: "index.html" });
+    OffPGUI.renderSidebar("dashboard", "");
+
+    var partnerCount = OffPG.countByType("총판");
+    var agencyCount = OffPG.countByType("영업사");
+    var merchantCount = OffPG.countByType("가맹점");
+    document.getElementById("cnt-partner").textContent = partnerCount;
+    document.getElementById("cnt-agency").textContent = agencyCount;
+    document.getElementById("cnt-merchant").textContent = merchantCount;
+
+    var recent = OffPG.recentRegistrations(6);
+    document.getElementById("recent-body").innerHTML = recent
+      .map(function (c) {
+        return (
+          "<tr><td>" +
+          c.type +
+          "</td><td class='left'>" +
+          OffPGUI.escapeHtml(c.name) +
+          "</td><td>" +
+          c.regDate +
+          "</td><td>" +
+          OffPGUI.badge(c.contractStatus, "green") +
+          "</td></tr>"
+        );
+      })
+      .join("");
+  }
+</script>
+</body>
+</html>
