@@ -466,6 +466,24 @@
       return c;
     },
 
+    /* 어드민이 등록 후 원가(D+0/D+1)를 수정 — 해당 업체의 settleCycle 기준으로 feeTable.cost 재계산 */
+    updateAdminCostRow: function (id, row, d0, d1) {
+      var c = this.getById(id);
+      if (!c || !c.adminCost) return;
+      c.adminCost[row] = { d0: round1(d0), d1: round1(d1) };
+      c.feeTable[row].cost = c.adminCost[row][cycleKey(c.settleCycle)];
+      this.save();
+    },
+
+    /* 총판/영업사가 등록 후 하부업체의 수익/판매가를 수정 (원가는 고정) */
+    updateChildFeeRow: function (id, row, profit, sale) {
+      var c = this.getById(id);
+      if (!c || !c.feeTable[row]) return;
+      c.feeTable[row].profit = round1(profit);
+      c.feeTable[row].sale = round1(sale);
+      this.save();
+    },
+
     setContractStatus: function (id, status) {
       var c = this.getById(id);
       if (c) {

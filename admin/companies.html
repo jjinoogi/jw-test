@@ -99,14 +99,27 @@
 
     function showDetail(id) {
       var c = OffPG.getById(id);
+      var editable = !!c.adminCost;
       var rowsHtml = OffPG.ROWS.map(function (row) {
         var f = c.feeTable[row];
+        if (editable) {
+          var ac = c.adminCost[row];
+          return (
+            "<tr data-row='" + row + "'><td>" + row + "</td>" +
+            "<td><input type='text' class='inp-d0' value='" + ac.d0 + "' /></td>" +
+            "<td><input type='text' class='inp-d1' value='" + ac.d1 + "' /></td>" +
+            "<td class='dash'>-</td><td class='dash'>-</td></tr>"
+          );
+        }
         return (
           "<tr><td>" + row + "</td><td>" + f.cost + "%</td>" +
           "<td>" + (f.profit == null ? "-" : f.profit + "%") + "</td>" +
           "<td>" + (f.sale == null ? "-" : f.sale + "%") + "</td></tr>"
         );
       }).join("");
+      var feeHeadRow = editable
+        ? "<tr><th>영중소구분</th><th>D+0 원가</th><th>D+1 원가</th><th>총판수익</th><th>판매가</th></tr>"
+        : "<tr><th>영중소구분</th><th>원가</th><th>수익</th><th>판매가</th></tr>";
       OffPGUI.openModal(
         '<div class="modal-head">업체 상세정보 - ' + OffPGUI.escapeHtml(c.name) + '</div>' +
         '<div class="modal-body">' +
@@ -119,11 +132,27 @@
         '<div><div class="k">대표자명</div><div class="v">' + OffPGUI.escapeHtml(c.ceo) + '</div></div>' +
         '<div><div class="k">업체전화번호</div><div class="v">' + c.tel + '</div></div>' +
         '</div>' +
-        '<h3>수수료테이블</h3>' +
-        '<table class="data-table fee-table"><thead><tr><th>영중소구분</th><th>원가</th><th>수익</th><th>판매가</th></tr></thead><tbody>' + rowsHtml + '</tbody></table>' +
+        '<h3>수수료테이블' + (editable ? ' <span style="font-weight:400;color:var(--text-sub);font-size:12px;">(원가는 어드민이 수정 가능합니다)</span>' : '') + '</h3>' +
+        '<table class="data-table fee-table" id="detail-fee-table"><thead>' + feeHeadRow + '</thead><tbody>' + rowsHtml + '</tbody></table>' +
         '</div>' +
-        '<div class="modal-foot"><button class="btn" data-close-modal>닫기</button></div>'
+        '<div class="modal-foot">' +
+        (editable ? '<button class="btn btn-primary" id="btn-save-fee" style="margin-right:8px;">저장</button>' : '') +
+        '<button class="btn" data-close-modal>닫기</button></div>'
       );
+
+      if (editable) {
+        document.getElementById("btn-save-fee").addEventListener("click", function () {
+          document.querySelectorAll("#detail-fee-table tbody tr").forEach(function (tr) {
+            var row = tr.getAttribute("data-row");
+            var d0 = parseFloat(tr.querySelector(".inp-d0").value) || 0;
+            var d1 = parseFloat(tr.querySelector(".inp-d1").value) || 0;
+            OffPG.updateAdminCostRow(c.id, row, d0, d1);
+          });
+          OffPGUI.toast("원가가 수정되었습니다.");
+          OffPGUI.closeModal();
+          render();
+        });
+      }
     }
 
     document.getElementById("btn-search").addEventListener("click", render);

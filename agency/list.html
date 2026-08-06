@@ -82,14 +82,17 @@
       });
     }
 
+    function round1(n) { return Math.round(n * 10) / 10; }
+
     function showDetail(id) {
       var c = OffPG.getById(id);
       var profitLabel = "영업사수익";
       var rowsHtml = OffPG.ROWS.map(function (row) {
         var f = c.feeTable[row];
         return (
-          "<tr><td>" + row + "</td><td>" + f.cost + "%</td>" +
-          "<td>" + f.profit + "%</td><td>" + f.sale + "%</td></tr>"
+          "<tr data-row='" + row + "' data-cost='" + f.cost + "'><td>" + row + "</td><td>" + f.cost + "%</td>" +
+          "<td><input type='text' class='inp-profit' value='" + f.profit + "' /></td>" +
+          "<td><input type='text' class='inp-sale' value='" + f.sale + "' /></td></tr>"
         );
       }).join("");
       OffPGUI.openModal(
@@ -104,11 +107,39 @@
         '<div><div class="k">대표자명</div><div class="v">' + OffPGUI.escapeHtml(c.ceo) + '</div></div>' +
         '<div><div class="k">업체전화번호</div><div class="v">' + c.tel + '</div></div>' +
         '</div>' +
-        '<h3>수수료테이블</h3>' +
-        '<table class="data-table fee-table"><thead><tr><th>영중소구분</th><th>' + c.settleCycle + '원가</th><th>' + profitLabel + '</th><th>판매가</th></tr></thead><tbody>' + rowsHtml + '</tbody></table>' +
+        '<h3>수수료테이블 <span style="font-weight:400;color:var(--text-sub);font-size:12px;">(' + profitLabel + '/판매가는 수정 가능합니다)</span></h3>' +
+        '<table class="data-table fee-table" id="detail-fee-table"><thead><tr><th>영중소구분</th><th>' + c.settleCycle + '원가</th><th>' + profitLabel + '</th><th>판매가</th></tr></thead><tbody>' + rowsHtml + '</tbody></table>' +
         '</div>' +
-        '<div class="modal-foot"><button class="btn" data-close-modal>닫기</button></div>'
+        '<div class="modal-foot">' +
+        '<button class="btn btn-primary" id="btn-save-fee" style="margin-right:8px;">저장</button>' +
+        '<button class="btn" data-close-modal>닫기</button></div>'
       );
+
+      document.querySelectorAll("#detail-fee-table tbody tr").forEach(function (tr) {
+        var cost = parseFloat(tr.getAttribute("data-cost"));
+        var profitInput = tr.querySelector(".inp-profit");
+        var saleInput = tr.querySelector(".inp-sale");
+        profitInput.addEventListener("input", function () {
+          var p = parseFloat(profitInput.value);
+          saleInput.value = isNaN(p) ? "" : round1(cost + p);
+        });
+        saleInput.addEventListener("input", function () {
+          var s = parseFloat(saleInput.value);
+          profitInput.value = isNaN(s) ? "" : round1(s - cost);
+        });
+      });
+
+      document.getElementById("btn-save-fee").addEventListener("click", function () {
+        document.querySelectorAll("#detail-fee-table tbody tr").forEach(function (tr) {
+          var row = tr.getAttribute("data-row");
+          var profit = parseFloat(tr.querySelector(".inp-profit").value) || 0;
+          var sale = parseFloat(tr.querySelector(".inp-sale").value) || 0;
+          OffPG.updateChildFeeRow(id, row, profit, sale);
+        });
+        OffPGUI.toast("수수료가 수정되었습니다.");
+        OffPGUI.closeModal();
+        render();
+      });
     }
 
     document.getElementById("btn-search").addEventListener("click", render);
